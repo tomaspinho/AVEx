@@ -42,5 +42,38 @@ rom            | src/GBA.cpp (1272)          | Loading is done by reading a file
 
 (1) Handled directly through functions implemented in VBA. Save files are loaded to memory, written and saved to disk.
 
-#### Memory Write Functions ####
-Are declared within src/GBA.cpp, beginning on line 2714, after register accessing functions.
+#### Memory Access Functions ####
+Due to GameBoy Advanced's shared address space, switch cases implementing read/write opcodes have to translate (2) given addresses to match the appropriated allocated array in the emulator. Therefore, several auxiliar functions were implemented: 
+
+##### Memory read #####
+
+CPUReadMemory(address) :-> 32-bit value
+GBAinline.h (41)
+
+CPUReadHalfWord(address) :-> 32-bit value
+GBAinline.h (159)
+
+CPUReadHalfWordSigned(address) :-> 16-bit value
+GBAinline.h (261)
+
+##### Memory write #####
+
+void CPUWriteMemory(address, 32-bit value)
+GBAinline.h (344)
+
+void CPUWriteHalfWord(address, 16-bit value)
+GBA.cpp (2714)
+
+(2) - Translation is done through 24-bit shift-rights, due to GBA's conveniently laid out address space, to identify one of the memories below:
+
+Memory            | start      | end
+------------------|------------|-----
+System ROM        | 0000:0000h | 0000:3FFFh
+External Work RAM | 0200:0000h | 0203:FFFFh
+External Work RAM | 0300:0000h | 0300:7FFFh
+IO RAM            | 0400:0000h | 0400:03FFh
+PAL RAM           | 0500:0000h | 0500:03FFh
+VRAM              | 0600:0000h | 0601:7FFFh
+OAM               | 0700:0000h | 0700:03FFh
+PAK ROM           | 0800:0000h | variable
+Cart RAM          | 0E00:0000h | variable
