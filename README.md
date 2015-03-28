@@ -9,11 +9,20 @@
     sudo make install
 
 ### Process VM Interpreter ###
-Uses a decode-and-dispatch approach to emulating the 16.78 MHz ARM7TDMI processor (32bit GameBoy Advance) and the 8 or 4 MHz Z80 coprocessor (8bit GameBoy). Does not rely on data structures for execution, but rather on local variables and calls to functions that implement each opcode functionality.
-The "big switch" is located inside src/arm-new.h.
+Uses a **decode-and-dispatch** approach to emulating the **16.78 MHz ARM7TDMI processor** (32bit GameBoy Advance) and the **8 or 4 MHz Z80 coprocessor** (8bit GameBoy). Does not rely on data structures for execution, but rather on local variables and calls to functions that implement each opcode functionality.
+The "big switch" is located inside `src/arm-new.h`.
+
+#### Possible optimizations ####
+Version 1.7.2 of the Visual Boy Advance emulator implements the "big switch" of the decode-and-dispatch approach using copious amounts of local variables, function calls, macro expansions for direct array indexing and expression evaluation to prepare certain values for operations.
+
+Possible simple optimizations include cleaning redudant local variables while promoting them to globals, optimizing function implementations and evaluated expressions.
+
+Possible complex optimizations include changing the **decode-and-dispatch** to an **indirect threaded interpretation** approach, merging all logic and called functions into a lookup table indexed by the opcode. However, recent GCC versions already decide on optimizing switch-case constructs into lookup tables with function pointers, and this may be pointless.
+
+A **predecoding** approach may be a possible optimization and a predecoded opcode cache may improve execution times. The GameBoy Advance has atmost `32mb` of cartridge rom, which means that using a maximum of `1gb` ram (a more than decent ram usage for games nowadays) for VisualBoy Advance's execution would allow us to cache the predecoding of all the game's opcodes, providing the predecoded `struct` occupies, atmost, `32bits`.
 
 ### Memory Architecture ###
-The GameBoy Advance has a 32 kilobyte internal DRAM + 96 kilobyte VRAM (internal to the CPU) and 256 kilobyte DRAM (outside the CPU). These RAMs are implemented in the form of arrays allocated in the emulator's heap space.
+The GameBoy Advance has a **32 kilobyte internal DRAM** + **96 kilobyte VRAM** (internal to the CPU) and **256 kilobyte DRAM** (outside the CPU). These RAMs are implemented in the form of arrays allocated in the emulator's heap space.
 
 In the following table we attempt to describe all arrays in the emulator.
 
@@ -47,22 +56,17 @@ Due to GameBoy Advanced's shared address space, switch cases implementing read/w
 
 ##### Memory read #####
 
-CPUReadMemory(address) :-> 32-bit value
-GBAinline.h (41)
+CPUReadMemory(address) :-> 32-bit value, GBAinline.h (41)
 
-CPUReadHalfWord(address) :-> 32-bit value
-GBAinline.h (159)
+CPUReadHalfWord(address) :-> 32-bit value, GBAinline.h (159)
 
-CPUReadHalfWordSigned(address) :-> 16-bit value
-GBAinline.h (261)
+CPUReadHalfWordSigned(address) :-> 16-bit value, GBAinline.h (261)
 
 ##### Memory write #####
 
-void CPUWriteMemory(address, 32-bit value)
-GBAinline.h (344)
+void CPUWriteMemory(address, 32-bit value), GBAinline.h (344)
 
-void CPUWriteHalfWord(address, 16-bit value)
-GBA.cpp (2714)
+void CPUWriteHalfWord(address, 16-bit value), GBA.cpp (2714)
 
 (2) - Translation is done through 24-bit shift-rights, due to GBA's conveniently laid out address space, to identify one of the memories below:
 
