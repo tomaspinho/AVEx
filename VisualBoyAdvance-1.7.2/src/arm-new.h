@@ -2180,7 +2180,9 @@
     break;
 
   u32 opcode = CPUReadMemoryQuick(armNextPC);
-
+#ifdef AVEXPROFILING
+  opcodeTimes[((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F)]++;
+#endif
   clockTicks = memoryWaitFetch32[(armNextPC >> 24) & 15];
 
 #ifndef FINAL_VERSION

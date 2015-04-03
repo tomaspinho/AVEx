@@ -1,0 +1,16 @@
+0012 - ANDS Rd,Rb,Rm LSR
+000d - ANDS Rd,Rb,Rm LSR Rs 
+001b - LDRH Rd, [Rn], -Rm (Load Register Half Word)
+0046 - SUB Rd,Rb,Rm ROR
+000e - AND Rd,Rb,Rm ROR
+0014 - ANDS Rd,Rb,Rm ASR
+0011 - ANDS Rd,Rb,Rm LSL Rs
+01df - LDRSH Rd, [Rn, #offset] (Load register signed halfword)
+00cb - STRH Rd, [Rn], #offset (Store register halfword)
+0009 - MUL Rd, Rm, Rs
+0084 - ADD Rd,Rb,Rm ASR
+0080 - ADD Rd,Rb,Rm LSL
+0150 - CMP Rd,Rb,Rm LSL
+0082 - ADD Rd,Rb,Rm LSR
+01dd - LDRSB Rd, [Rn, #offset] (Load register signed byte)
+                               

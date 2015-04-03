@@ -40,6 +40,9 @@ extern bool V_FLAG;
 extern bool armState;
 extern bool armIrqEnable;
 extern u32 armNextPC;
+#ifdef AVEXPROFILING
+extern unsigned long long *opcodeTimes;
+#endif
 extern int armMode;
 extern u32 stop;
 extern int saveType;

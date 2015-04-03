@@ -41,6 +41,13 @@
 #ifdef PROFILING
 #include "prof/prof.h"
 #endif
+#ifdef AVEXPROFILING
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#endif
 
 #define UPDATE_REG(address, value) WRITE16LE(((u16 *)&ioMem[address]),value)
 
@@ -1206,7 +1213,20 @@ void CPUCleanUp()
     profCleanup();
   }
 #endif
-  
+  #ifdef AVEXPROFILING
+  printf("CPUCleanUpCalled!\n");
+  std::ofstream out("opcodetimes.csv");
+  std::ostringstream os;
+  out << "opcode,times_dispatched\n";
+  for(int i = 0; i < 4096; i++){
+    os << std::setfill('0') << std::setw(4) << std::hex << i;
+    out << os.str() << "," << opcodeTimes[i] << "\n";
+    os.str("");
+  }
+  out.close();
+  free(opcodeTimes);
+  #endif
+
   if(rom != NULL) {
     free(rom);
     rom = NULL;
@@ -1268,7 +1288,13 @@ int CPULoadRom(const char *szFile)
   }
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
-  
+
+  #ifdef AVEXPROFILING
+  // opcode space is 16^3, even though it's only < 0xaff
+  opcodeTimes = (unsigned long long *)malloc(4096*sizeof(unsigned long long));
+  memset(opcodeTimes, 0, sizeof(opcodeTimes));
+  #endif
+
   rom = (u8 *)malloc(0x2000000);
   if(rom == NULL) {
     systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
