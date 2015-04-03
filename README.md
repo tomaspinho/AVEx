@@ -17,6 +17,9 @@
 Uses a **decode-and-dispatch** approach to emulating the **16.78 MHz ARM7TDMI processor** (32bit GameBoy Advance) and the **8 or 4 MHz Z80 coprocessor** (8bit GameBoy). Does not rely on data structures for execution, but rather on local variables and calls to functions that implement each opcode functionality.
 The "big switch" is located inside `src/arm-new.h`.
 
+#### Opcode Profiling ####
+Analyzing the counts for each opcode's executions (see `opcodetimes.csv` and `mostfrequentopcodes.txt`) we come to the conclusion that logic, arithmetic and memory access opcodes are the most used throughout games. 
+
 #### Possible optimizations ####
 Version 1.7.2 of the Visual Boy Advance emulator implements the "big switch" of the decode-and-dispatch approach using copious amounts of local variables, function calls, macro expansions for direct array indexing and expression evaluation to prepare certain values for operations.
 
@@ -24,7 +27,7 @@ Possible simple optimizations include cleaning redudant local variables while pr
 
 Possible complex optimizations include changing the **decode-and-dispatch** to an **indirect threaded interpretation** approach, merging all logic and called functions into a lookup table indexed by the opcode. However, recent GCC versions already decide on optimizing switch-case constructs into lookup tables with function pointers, and this may be pointless.
 
-A **predecoding** approach may be a possible optimization and a predecoded opcode cache may improve execution times. The GameBoy Advance has atmost `32mb` of cartridge rom, which means that using a maximum of `1gb` ram (a more than decent ram usage for games nowadays) for VisualBoy Advance's execution would allow us to cache the predecoding of all the game's opcodes, providing the predecoded `struct` occupies, atmost, `32bits`. As this is not feasible (32bits is the standard size of an `integer`), a LRU or LFU cache would have to be implemented.
+A **predecoding** approach may be a possible optimization and a predecoded opcode cache may improve execution times. The GameBoy Advance has atmost `32mb` of cartridge rom, which means that using a maximum of `1gb` ram (a more than decent ram usage for games nowadays) for VisualBoy Advance's execution would allow us to cache the predecoding of all the game's opcodes, providing the predecoded `struct` occupies, atmost, `32bits`. As this is not feasible (32bits is the standard size of an `integer`), a LRU or LFU cache would have to be implemented. These could be select *predecoding* by choosing only to predecode the statistically most executed opcodes (see Opcode Profiling).
 
 ### Memory Architecture ###
 The GameBoy Advance has a **32 kilobyte internal DRAM** + **96 kilobyte VRAM** (internal to the CPU) and **256 kilobyte DRAM** (outside the CPU). These RAMs are implemented in the form of arrays allocated in the emulator's heap space.
