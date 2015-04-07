@@ -42,7 +42,7 @@ Internal RAM | 32kb       | internalRAM         | This memory is embedded in the
 IO RAM       | 1kb        | ioMem               | Memory-mapped IO registers. This section is used to control graphics, sound, buttons and other features.             
 PAL RAM      | 1kb        | paletteRAM          | Memory for two palettes containing 256 entries of 15-bit colors each. The first is for backgrounds, the second for sprites.         
 VRAM         | 96kb       | vram                | Video RAM. This is where the data used for backgrounds and sprites are stored. The interpretation of this data depends on a number of things, including video mode and background and sprite settings.
-OAM          | 1kb        | oam                 | Object Attribute Memory. This is sprites are controlled.
+OAM          | 1kb        | oam                 | Object Attribute Memory. This is where sprites are controlled.
 PAK ROM      | up to 32mb | rom                 | This is the memory of the game cartridge inserted into the console.
 Cart RAM     | variable   | handled directly (1)| This is where saved data is stored. Cart RAM can be in the form of SRAM, Flash ROM or EEPROM. It's present inside the cartridge.
 
@@ -66,7 +66,7 @@ Due to GameBoy Advanced's shared address space, switch cases implementing read/w
 
 CPUReadMemory(address) :-> 32-bit value, GBAinline.h (41)
 
-CPUReadHalfWord(address) :-> 32-bit value, GBAinline.h (159)
+CPUReadHalfWord(address) :-> 16-bit value, GBAinline.h (159)
 
 CPUReadHalfWordSigned(address) :-> 16-bit value, GBAinline.h (261)
 
