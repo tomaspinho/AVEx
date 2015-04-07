@@ -1292,7 +1292,7 @@ int CPULoadRom(const char *szFile)
   #ifdef AVEXPROFILING
   // opcode space is 16^3, even though it's only < 0xaff
   opcodeTimes = (unsigned long long *)malloc(4096*sizeof(unsigned long long));
-  memset(opcodeTimes, 0, sizeof(opcodeTimes));
+  memset(opcodeTimes, 0, 4096*sizeof(unsigned long long));
   #endif
 
   rom = (u8 *)malloc(0x2000000);

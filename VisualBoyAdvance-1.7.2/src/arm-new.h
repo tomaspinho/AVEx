@@ -2180,9 +2180,6 @@
     break;
 
   u32 opcode = CPUReadMemoryQuick(armNextPC);
-#ifdef AVEXPROFILING
-  opcodeTimes[((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F)]++;
-#endif
   clockTicks = memoryWaitFetch32[(armNextPC >> 24) & 15];
 
 #ifndef FINAL_VERSION
@@ -2254,6 +2251,9 @@
   }
   
 if(cond_res) {
+#ifdef AVEXPROFILING
+  opcodeTimes[((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F)]++;
+#endif
   switch(((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F)) {
     LOGICAL_DATA_OPCODE_WITHOUT_base(OP_AND,  OP_AND, 0x000);
     LOGICAL_DATA_OPCODE_WITHOUT_base(OP_ANDS, OP_AND, 0x010);
