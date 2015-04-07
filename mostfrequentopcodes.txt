@@ -1,16 +1,19 @@
-0012 - ANDS Rd,Rb,Rm LSR
-000d - ANDS Rd,Rb,Rm LSR Rs 
-001b - LDRH Rd, [Rn], -Rm (Load Register Half Word)
-0046 - SUB Rd,Rb,Rm ROR
-000e - AND Rd,Rb,Rm ROR
-0014 - ANDS Rd,Rb,Rm ASR
-0011 - ANDS Rd,Rb,Rm LSL Rs
-01df - LDRSH Rd, [Rn, #offset] (Load register signed halfword)
-00cb - STRH Rd, [Rn], #offset (Store register halfword)
-0009 - MUL Rd, Rm, Rs
-0084 - ADD Rd,Rb,Rm ASR
+0009 - MUL Rd, Rm, R 
+03cf - BIC Rd, Rm
+0086 - ADD Rd,Rb,Rm ROR
 0080 - ADD Rd,Rb,Rm LSL
-0150 - CMP Rd,Rb,Rm LSL
-0082 - ADD Rd,Rb,Rm LSR
-01dd - LDRSB Rd, [Rn, #offset] (Load register signed byte)
-                               
+0250 - SUBS , ROR
+0290 - ADDS, ROR
+008c - ADD, Rd,Rb,Rm ASR
+01ba - MOVS, Rd,Rb,Rm LSR
+0afe - B FE (branch of FE instructions)
+0040 - SUB Rd,Rb,Rm LSL
+01fd - LDRSB Rd, [Rn, #offset]! 
+0050 - SUBS Rd,Rb,Rm LSL
+01bd - LDRSB Rd, [Rn, Rm]!  
+019d - LDRSB Rd, [Rn, Rm]
+0590 - LDR Rd, [Rn, #] 
+0480 - STR Rd, [Rn], #
+0583 - STR Rd, [Rn, #]
+0593 - LDR Rd, [Rn, #]
+0aff - B FF
