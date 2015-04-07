@@ -18,7 +18,7 @@ Uses a **decode-and-dispatch** approach to emulating the **16.78 MHz ARM7TDMI pr
 The "big switch" is located inside `src/arm-new.h`.
 
 #### Opcode Profiling ####
-Analyzing the counts for each opcode's executions (see `opcodetimes.csv` and `mostfrequentopcodes.txt`) we come to the conclusion that logic, arithmetic and memory access opcodes are the most used throughout games. 
+Analyzing the counts for each opcode's executions (see `opcodetimes.csv` and `mostfrequentopcodes.txt`) we come to the conclusion that arithmetic instructions are the most executed, followed by memory loading opcodes, branching instructions and memory storing opcodes. Therefore, instruction optimization priority should follow these results.
 
 #### Possible optimizations ####
 Version 1.7.2 of the Visual Boy Advance emulator implements the "big switch" of the decode-and-dispatch approach using copious amounts of local variables, function calls, macro expansions for direct array indexing and expression evaluation to prepare certain values for operations.
