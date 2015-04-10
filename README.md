@@ -57,6 +57,7 @@ oam            | src/GBA.cpp (1355)          |
 rom            | src/GBA.cpp (1272)          | Loading is done by reading a file in (`src/GBA.cpp` - line 1290) and writing to the array through a for loop (line 1322)
 
 (1) Handled directly through functions implemented in VBA. Save files are loaded to memory, written and saved to disk.
+
 ------
 #### Memory Access Functions ####
 Due to GameBoy Advanced's shared address space, switch cases implementing read/write opcodes have to translate (2) given addresses to match the appropriated allocated array in the emulator. Therefore, several auxiliar functions were implemented: 
