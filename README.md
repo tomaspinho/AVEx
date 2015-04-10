@@ -13,6 +13,8 @@
     CXXFLAGS="-fpermissive -DC_CORE -DPROFILING -DDEV_VERSION -DAVEXPROFILING" CFLAGS="-g" ./configure
     make
 
+------
+
 ### Process VM Interpreter ###
 Uses a **decode-and-dispatch** approach to emulating the **16.78 MHz ARM7TDMI processor** (32bit GameBoy Advance) and the **8 or 4 MHz Z80 coprocessor** (8bit GameBoy). Does not rely on data structures for execution, but rather on local variables and calls to functions that implement each opcode functionality.
 The "big switch" is located inside `src/arm-new.h`.
