@@ -21,7 +21,14 @@
 #include <memory.h>
 #include <stdarg.h>
 #include <string.h>
-
+#ifdef AVEXPROFILING
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <time.h>
+#endif
 #include "GBA.h"
 #include "GBAinline.h"
 #include "Globals.h"
@@ -41,13 +48,7 @@
 #ifdef PROFILING
 #include "prof/prof.h"
 #endif
-#ifdef AVEXPROFILING
-#include <fstream>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <iomanip>
-#endif
+
 
 #define UPDATE_REG(address, value) WRITE16LE(((u16 *)&ioMem[address]),value)
 
@@ -1225,6 +1226,18 @@ void CPUCleanUp()
   }
   out.close();
   free(opcodeTimes);
+
+  std::ofstream out2("opcodeextimes.csv");
+  std::ostringstream os2;
+  out << "opcode,execution_time\n";
+  for(int i = 0; i < 4096; i++){
+    os2 << std::setfill('0') << std::setw(4) << std::hex << i;
+    out2 << os2.str() << "," << ((double)opcodeExTimes[i])/CLOCKS_PER_SEC * 1000 << "\n";
+    os2.str("");
+  }
+  out2.close();
+  free(opcodeExTimes);
+
   #endif
 
   if(rom != NULL) {
@@ -1293,6 +1306,8 @@ int CPULoadRom(const char *szFile)
   // opcode space is 16^3, even though it's only < 0xaff
   opcodeTimes = (unsigned long long *)malloc(4096*sizeof(unsigned long long));
   memset(opcodeTimes, 0, 4096*sizeof(unsigned long long));
+  opcodeExTimes = (clock_t *)malloc(4096*sizeof(clock_t));
+  memset(opcodeExTimes, 0, 4096*sizeof(clock_t));
   #endif
 
   rom = (u8 *)malloc(0x2000000);
@@ -3418,7 +3433,15 @@ void CPULoop(int ticks)
 
     if(!holdState) {
       if(armState) {
+      #ifdef AVEXPROFILING
+        clock_t beforeClock = clock();
+        int opcodeIndex;
+      #endif
 #include "arm-new.h"
+      #ifdef AVEXPROFILING
+        clock_t timeElapsed = beforeClock - clock();
+        opcodeExTimes[opcodeIndex] = (opcodeExTimes[opcodeIndex] < timeElapsed ? timeElapsed : opcodeExTimes[opcodeIndex]);
+      #endif
       } else {
 #include "thumb.h"
       }

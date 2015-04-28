@@ -58,6 +58,7 @@ u8 *ioMem = NULL;
 
 #ifdef AVEXPROFILING
 unsigned long long  *opcodeTimes = NULL;
+clock_t *opcodeExTimes = NULL;
 #endif
 
 u16 DISPCNT  = 0x0080;

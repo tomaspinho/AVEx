@@ -2252,7 +2252,8 @@
   
 if(cond_res) {
 #ifdef AVEXPROFILING
-  opcodeTimes[((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F)]++;
+  opcodeIndex = ((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F);
+  opcodeTimes[opcodeIndex]++;
 #endif
   switch(((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F)) {
     LOGICAL_DATA_OPCODE_WITHOUT_base(OP_AND,  OP_AND, 0x000);
