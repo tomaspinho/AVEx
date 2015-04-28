@@ -4,7 +4,7 @@
     # To compile Visual Boy Advance use this in its directory
     CXXFLAGS=-fpermissive ./configure
     make
-
+    
     # It produces messy results with all compiled objects inside src directories. Install with
     sudo make install
 
@@ -28,7 +28,7 @@ Version 1.7.2 of the Visual Boy Advance emulator implements the "big switch" of 
 
 Possible complex optimizations include changing the **decode-and-dispatch** to an **indirect threaded interpretation** approach, merging all logic and called functions into a lookup table indexed by the opcode. However, recent GCC versions already decide on optimizing switch-case constructs into lookup tables with function pointers, and this may be pointless.
 
-A **predecoding** approach may be a possible optimization and a predecoded opcode cache may improve execution times. The GameBoy Advance has atmost `32mb` of cartridge rom, which means that, given a instruction of 32bit size, there would be, atmost, 8.388.608 instructions in a ROM (32mb = 256mbit / 32bit). Given a 4byte sized function pointer (standard in C x86) and up to 3 auxiliar *int* values (4bytes each), the *struct* held in cache would occupy 16bytes. That would mean a 134217728bytes = 128mb (8.388.608 * 16bytes) sized cache for all opcodes in a given ROM. We choose to, due to time restrictions, implement **predecoding** for the statistically ten most executed opcodes (see Opcode Profiling).
+A **predecoding** approach may be a possible optimization and a predecoded opcode cache may improve execution times. The GameBoy Advance has atmost `32mb` of cartridge rom, which means that using a maximum of `1gb` ram (a more than decent ram usage for games nowadays) for VisualBoy Advance's execution would allow us to cache the predecoding of all the game's opcodes, providing the predecoded `struct` occupies, atmost, `32bits`. As this is not feasible (32bits is the standard size of an `integer` type in C), a LRU or LFU cache would have to be implemented. These could be select *predecoding* by choosing only to predecode the statistically most executed opcodes (see Opcode Profiling).
 
 ### Memory Architecture ###
 The GameBoy Advance has a **32 kilobyte internal DRAM** + **96 kilobyte VRAM** (internal to the CPU) and **256 kilobyte DRAM** (outside the CPU). These RAMs are implemented in the form of arrays allocated in the emulator's heap space.
@@ -39,9 +39,9 @@ In the following table we attempt to describe all arrays in the emulator.
 -------------|------------|---------------------|------------
 System Rom   | 16kb       | bios                | BIOS memory. Executable functions to enable faster development.
 DRAM         | 256kb      | workRAM             | External work RAM. Can be used for code and data.
-Internal RAM | 32kb       | internalRAM         | This memory is embedded in the CPU and it's the fastest memory section. The 32bit bus means that ARM instructions can be loaded at once. This is available for code and data.
-IO RAM       | 1kb        | ioMem               | Memory-mapped IO registers. This section is used to control graphics, sound, buttons and other features.
-PAL RAM      | 1kb        | paletteRAM          | Memory for two palettes containing 256 entries of 15-bit colors each. The first is for backgrounds, the second for sprites.
+Internal RAM | 32kb       | internalRAM         | This memory is embedded in the CPU and it's the fastest memory section. The 32bit bus means that ARM instructions can be loaded at once. This is available for code and data.    
+IO RAM       | 1kb        | ioMem               | Memory-mapped IO registers. This section is used to control graphics, sound, buttons and other features.             
+PAL RAM      | 1kb        | paletteRAM          | Memory for two palettes containing 256 entries of 15-bit colors each. The first is for backgrounds, the second for sprites.         
 VRAM         | 96kb       | vram                | Video RAM. This is where the data used for backgrounds and sprites are stored. The interpretation of this data depends on a number of things, including video mode and background and sprite settings.
 OAM          | 1kb        | oam                 | Object Attribute Memory. This is where sprites are controlled.
 PAK ROM      | up to 32mb | rom                 | This is the memory of the game cartridge inserted into the console.
