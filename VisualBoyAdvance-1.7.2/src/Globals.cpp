@@ -61,6 +61,8 @@ unsigned long long  *opcodeTimes = NULL;
 unsigned long *opcodeExTimes = NULL;
 #endif
 
+preIns * insCache = NULL;
+
 u16 DISPCNT  = 0x0080;
 u16 DISPSTAT = 0x0000;
 u16 VCOUNT   = 0x0000;
