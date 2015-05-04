@@ -3383,12 +3383,21 @@ void log(const char *defaultMsg, ...)
 extern void winlog(const char *, ...);
 #endif
 
+void doNextInstruction(int &clockTicks, int &opcodeIndex)
+{
+#include "arm-new.h"
+}
+
+
 void CPULoop(int ticks)
 {  
   int clockTicks;
   int cpuLoopTicks = 0;
   int timerOverflow = 0;
   // variables used by the CPU core
+
+  void (*doNextInstructionPtr)(int&,int&);
+  doNextInstructionPtr = &doNextInstruction;
 
   extCpuLoopTicks = &cpuLoopTicks;
   extClockTicks = &clockTicks;
@@ -3438,7 +3447,8 @@ void CPULoop(int ticks)
         int opcodeIndex;
         clock_gettime(CLOCK_MONOTONIC, &start); /* measure start time before instruction execution */
       #endif
-#include "arm-new.h"
+//#include "arm-new.h"
+      (*doNextInstructionPtr)(clockTicks, opcodeIndex);
       #ifdef AVEXPROFILING
         clock_gettime(CLOCK_MONOTONIC, &end); /* measure end time after instruction execution */
         unsigned long  timeElapsed;
