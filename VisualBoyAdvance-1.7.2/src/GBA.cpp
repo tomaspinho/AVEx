@@ -1232,7 +1232,7 @@ void CPUCleanUp()
   out << "opcode,execution_time\n";
   for(int i = 0; i < 4096; i++){
     os2 << std::setfill('0') << std::setw(4) << std::hex << i;
-    out2 << os2.str() << "," << ((double)opcodeExTimes[i])/CLOCKS_PER_SEC * 1000 << "\n";
+    out2 << os2.str() << "," << opcodeExTimes[i] << "\n";
     os2.str("");
   }
   out2.close();
@@ -1306,7 +1306,7 @@ int CPULoadRom(const char *szFile)
   // opcode space is 16^3, even though it's only < 0xaff
   opcodeTimes = (unsigned long long *)malloc(4096*sizeof(unsigned long long));
   memset(opcodeTimes, 0, 4096*sizeof(unsigned long long));
-  opcodeExTimes = (clock_t *)malloc(4096*sizeof(clock_t));
+  opcodeExTimes = (unsigned long *)malloc(4096*sizeof(unsigned long));
   memset(opcodeExTimes, 0, 4096*sizeof(clock_t));
   #endif
 
@@ -3434,12 +3434,15 @@ void CPULoop(int ticks)
     if(!holdState) {
       if(armState) {
       #ifdef AVEXPROFILING
-        clock_t beforeClock = clock();
+        struct timespec start, end;
         int opcodeIndex;
+        clock_gettime(CLOCK_MONOTONIC, &start); /* measure start time before instruction execution */
       #endif
 #include "arm-new.h"
       #ifdef AVEXPROFILING
-        clock_t timeElapsed = beforeClock - clock();
+        clock_gettime(CLOCK_MONOTONIC, &end); /* measure end time after instruction execution */
+        unsigned long  timeElapsed;
+        timeElapsed = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
         opcodeExTimes[opcodeIndex] = (opcodeExTimes[opcodeIndex] < timeElapsed ? timeElapsed : opcodeExTimes[opcodeIndex]);
       #endif
       } else {
