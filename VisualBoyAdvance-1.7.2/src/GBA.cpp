@@ -3335,7 +3335,13 @@ void CPULoop(int ticks)
 
         armNextPC = reg[15].I;
         reg[15].I += 4;
-        
+
+        // The armNextPC contains the Program Counter that has the byte address
+        // where the instruction begins in GBA's address space. Masking it with
+        // the proper constant yields the address relative to the beginning of
+        // the ROM's array in the emulator's internals. Dividing by 4 gives us
+        // the instruction index inside the ROM, which we will then use to address
+        // the predecoded information.
         int insIndex = (armNextPC&0x1FFFFFC)/4;
         (*(insCache[insIndex]->run))(clockTicks, opcodeIndex);
         #ifdef AVEXPROFILING
