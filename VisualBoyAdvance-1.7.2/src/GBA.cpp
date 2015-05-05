@@ -3258,6 +3258,7 @@ void log(const char *defaultMsg, ...)
 extern void winlog(const char *, ...);
 #endif
 
+u32 opcode;
 void doNextInstruction(int &clockTicks, int &opcodeIndex)
 {
 #include "arm-new.h"
@@ -3316,14 +3317,28 @@ void CPULoop(int ticks)
 
     if(!holdState) {
       if(armState) {
-      #ifdef AVEXPROFILING
+        #ifdef AVEXPROFILING
         struct timespec start, end;
         int opcodeIndex;
         clock_gettime(CLOCK_MONOTONIC, &start); /* measure start time before instruction execution */
-      #endif
-//#include "arm-new.h"
-      (*doNextInstructionPtr)(clockTicks, opcodeIndex);
-      #ifdef AVEXPROFILING
+        #endif
+        //#include "arm-new.h"  
+
+        opcode = CPUReadMemoryQuick(armNextPC);
+        clockTicks = memoryWaitFetch32[(armNextPC >> 24) & 15];
+
+        #ifndef FINAL_VERSION
+        if(armNextPC == stop) {
+            armNextPC++;
+        }
+        #endif
+
+        armNextPC = reg[15].I;
+        reg[15].I += 4;
+        
+        int insIndex = (armNextPC&0x1FFFFFC)/4;
+        (*(insCache[insIndex]->run))(clockTicks, opcodeIndex);
+        #ifdef AVEXPROFILING
         clock_gettime(CLOCK_MONOTONIC, &end); /* measure end time after instruction execution */
         unsigned long  timeElapsed;
         timeElapsed = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;

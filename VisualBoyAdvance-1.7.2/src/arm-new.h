@@ -2179,17 +2179,6 @@
     }\
     break;
 
-  u32 opcode = CPUReadMemoryQuick(armNextPC);
-  clockTicks = memoryWaitFetch32[(armNextPC >> 24) & 15];
-
-#ifndef FINAL_VERSION
-  if(armNextPC == stop) {
-    armNextPC++;
-  }
-#endif
-
-  armNextPC = reg[15].I;
-  reg[15].I += 4;
   int cond = opcode >> 28;
   // suggested optimization for frequent cases
   bool cond_res;
