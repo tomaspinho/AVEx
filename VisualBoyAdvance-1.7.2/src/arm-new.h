@@ -2240,8 +2240,8 @@
   }
   
 if(cond_res) {
-#ifdef AVEXPROFILING
   opcodeIndex = ((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F);
+#ifdef AVEXPROFILING
   opcodeTimes[opcodeIndex]++;
 #endif
   switch(((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F)) {

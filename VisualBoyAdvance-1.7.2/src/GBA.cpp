@@ -3317,9 +3317,9 @@ void CPULoop(int ticks)
 
     if(!holdState) {
       if(armState) {
+        int opcodeIndex;
         #ifdef AVEXPROFILING
         struct timespec start, end;
-        int opcodeIndex;
         clock_gettime(CLOCK_MONOTONIC, &start); /* measure start time before instruction execution */
         #endif
         //#include "arm-new.h"  
@@ -3349,7 +3349,7 @@ void CPULoop(int ticks)
         unsigned long  timeElapsed;
         timeElapsed = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
         opcodeExTimes[opcodeIndex] = (opcodeExTimes[opcodeIndex] < timeElapsed ? timeElapsed : opcodeExTimes[opcodeIndex]);
-      #endif
+        #endif
       } else {
 #include "thumb.h"
       }
