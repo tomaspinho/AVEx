@@ -5,14 +5,16 @@
     CXXFLAGS=-fpermissive ./configure
     make
 
-    # It produces messy results with all compiled objects inside src directories. Install with
-    sudo make install
-
 #### Compilation for Profiling ####
     # To compile Visual Boy Advance with opcode profiling capabilities
+    # This counts the number of dispatches per opcode and the maximum time
+    # an opcode's dispatch has taken 
     CXXFLAGS="-fpermissive -DC_CORE -DPROFILING -DDEV_VERSION -DAVEXPROFILING" CFLAGS="-g" ./configure
     make
-
+    
+#### Installation
+    # It produces messy results with all compiled objects inside src directories. Install with
+    sudo make install
 ------
 
 ### Process VM Interpreter ###
@@ -91,3 +93,16 @@ VRAM              | 0600:0000h | 0601:7FFFh
 OAM               | 0700:0000h | 0700:03FFh
 PAK ROM           | 0800:0000h | variable
 Cart RAM          | 0E00:0000h | variable
+
+##### Initial Results #####
+We have implemented a predecoded instruction cache that contains a `struct` per opcode inside the ROM. Initially, we fill it for all opcodes with the pointer to a function that implements the default emulator behaviour: the "big-switch" dispatch.
+Without profiling capabilities, the results are as follows.
+
+Version           | Minimum (3)| Maximum (3)
+------------------|------------|------------
+Original          | 208%       | 694%
+With cache        | 207%       | 671%
+
+The emulator is slowed down by the cached version because there are no opcode caching optimizations in place. Only reading the function pointer from a given opcode's `struct` in the cache. As it is performing more memory accesses, the emulator is slightly slowed down.
+
+(3) - Percentage of original hardware speed. Minimum is the default speed. Maximum is with maximum throttling (so the emulator performs at full CPU speed).
