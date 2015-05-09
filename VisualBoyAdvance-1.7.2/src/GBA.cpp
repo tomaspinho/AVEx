@@ -21,7 +21,14 @@
 #include <memory.h>
 #include <stdarg.h>
 #include <string.h>
-
+#ifdef AVEXPROFILING
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <time.h>
+#endif
 #include "GBA.h"
 #include "GBAinline.h"
 #include "Globals.h"
@@ -42,6 +49,7 @@
 #include "prof/prof.h"
 #endif
 
+
 #define UPDATE_REG(address, value) WRITE16LE(((u16 *)&ioMem[address]),value)
 
 #ifdef __GNUC__
@@ -57,6 +65,9 @@
   *extCpuLoopTicks = *extClockTicks;\
   *extTicks = *extClockTicks;
 
+// ROM size caps at 32mbytes (32*1024*1024)*8bytes
+// The instructions' size is 32bit
+#define NUM_INS_ROM (32 * 1024 * 1024)*8/32
 extern int emulating;
 
 int cpuDmaTicksToUpdate = 0;
@@ -1206,7 +1217,32 @@ void CPUCleanUp()
     profCleanup();
   }
 #endif
-  
+  #ifdef AVEXPROFILING
+  printf("CPUCleanUpCalled!\n");
+  std::ofstream out("opcodetimes.csv");
+  std::ostringstream os;
+  out << "opcode,times_dispatched\n";
+  for(int i = 0; i < 4096; i++){
+    os << std::setfill('0') << std::setw(4) << std::hex << i;
+    out << os.str() << "," << opcodeTimes[i] << "\n";
+    os.str("");
+  }
+  out.close();
+  free(opcodeTimes);
+
+  std::ofstream out2("opcodeextimes.csv");
+  std::ostringstream os2;
+  out << "opcode,execution_time\n";
+  for(int i = 0; i < 4096; i++){
+    os2 << std::setfill('0') << std::setw(4) << std::hex << i;
+    out2 << os2.str() << "," << opcodeExTimes[i] << "\n";
+    os2.str("");
+  }
+  out2.close();
+  free(opcodeExTimes);
+
+  #endif
+
   if(rom != NULL) {
     free(rom);
     rom = NULL;
@@ -1257,126 +1293,6 @@ void CPUCleanUp()
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
   emulating = 0;
-}
-
-int CPULoadRom(const char *szFile)
-{
-  int size = 0x2000000;
-  
-  if(rom != NULL) {
-    CPUCleanUp();
-  }
-
-  systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
-  
-  rom = (u8 *)malloc(0x2000000);
-  if(rom == NULL) {
-    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
-                  "ROM");
-    return 0;
-  }
-  workRAM = (u8 *)calloc(1, 0x40000);
-  if(workRAM == NULL) {
-    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
-                  "WRAM");
-    return 0;
-  }
-
-  u8 *whereToLoad = rom;
-  if(cpuIsMultiBoot)
-    whereToLoad = workRAM;
-
-  if(CPUIsELF(szFile)) {
-    FILE *f = fopen(szFile, "rb");
-    if(!f) {
-      systemMessage(MSG_ERROR_OPENING_IMAGE, N_("Error opening image %s"),
-                    szFile);
-      free(rom);
-      rom = NULL;
-      free(workRAM);
-      workRAM = NULL;
-      return 0;
-    }
-    bool res = elfRead(szFile, size, f);
-    if(!res || size == 0) {
-      free(rom);
-      rom = NULL;
-      free(workRAM);
-      workRAM = NULL;
-      elfCleanUp();
-      return 0;
-    }
-  } else if(!utilLoad(szFile,
-                      utilIsGBAImage,
-                      whereToLoad,
-                      size)) {
-    free(rom);
-    rom = NULL;
-    free(workRAM);
-    workRAM = NULL;
-    return 0;
-  }
-
-  u16 *temp = (u16 *)(rom+((size+1)&~1));
-  int i;
-  for(i = (size+1)&~1; i < 0x2000000; i+=2) {
-    WRITE16LE(temp, (i >> 1) & 0xFFFF);
-    temp++;
-  }
-
-  bios = (u8 *)calloc(1,0x4000);
-  if(bios == NULL) {
-    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
-                  "BIOS");
-    CPUCleanUp();
-    return 0;
-  }    
-  internalRAM = (u8 *)calloc(1,0x8000);
-  if(internalRAM == NULL) {
-    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
-                  "IRAM");
-    CPUCleanUp();
-    return 0;
-  }    
-  paletteRAM = (u8 *)calloc(1,0x400);
-  if(paletteRAM == NULL) {
-    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
-                  "PRAM");
-    CPUCleanUp();
-    return 0;
-  }      
-  vram = (u8 *)calloc(1, 0x20000);
-  if(vram == NULL) {
-    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
-                  "VRAM");
-    CPUCleanUp();
-    return 0;
-  }      
-  oam = (u8 *)calloc(1, 0x400);
-  if(oam == NULL) {
-    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
-                  "OAM");
-    CPUCleanUp();
-    return 0;
-  }      
-  pix = (u8 *)calloc(1, 4 * 241 * 162);
-  if(pix == NULL) {
-    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
-                  "PIX");
-    CPUCleanUp();
-    return 0;
-  }      
-  ioMem = (u8 *)calloc(1, 0x400);
-  if(ioMem == NULL) {
-    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
-                  "IO");
-    CPUCleanUp();
-    return 0;
-  }      
-
-  CPUUpdateRenderBuffers(true);
-
-  return size;
 }
 
 void CPUUpdateRender()
@@ -3342,12 +3258,21 @@ void log(const char *defaultMsg, ...)
 extern void winlog(const char *, ...);
 #endif
 
+u32 opcode;
+void doNextInstruction(int &clockTicks, int &opcodeIndex)
+{
+#include "arm-new.h"
+}
+
 void CPULoop(int ticks)
 {  
   int clockTicks;
   int cpuLoopTicks = 0;
   int timerOverflow = 0;
   // variables used by the CPU core
+
+  void (*doNextInstructionPtr)(int&,int&);
+  doNextInstructionPtr = &doNextInstruction;
 
   extCpuLoopTicks = &cpuLoopTicks;
   extClockTicks = &clockTicks;
@@ -3392,7 +3317,39 @@ void CPULoop(int ticks)
 
     if(!holdState) {
       if(armState) {
-#include "arm-new.h"
+        int opcodeIndex;
+        #ifdef AVEXPROFILING
+        struct timespec start, end;
+        clock_gettime(CLOCK_MONOTONIC, &start); /* measure start time before instruction execution */
+        #endif
+        //#include "arm-new.h"  
+
+        opcode = CPUReadMemoryQuick(armNextPC);
+        clockTicks = memoryWaitFetch32[(armNextPC >> 24) & 15];
+
+        #ifndef FINAL_VERSION
+        if(armNextPC == stop) {
+            armNextPC++;
+        }
+        #endif
+
+        armNextPC = reg[15].I;
+        reg[15].I += 4;
+
+        // The armNextPC contains the Program Counter that has the byte address
+        // where the instruction begins in GBA's address space. Masking it with
+        // the proper constant yields the address relative to the beginning of
+        // the ROM's array in the emulator's internals. Dividing by 4 gives us
+        // the instruction index inside the ROM, which we will then use to address
+        // the predecoded information.
+        int insIndex = (armNextPC&0x1FFFFFC)/4;
+        (*(insCache[insIndex]->run))(clockTicks, opcodeIndex);
+        #ifdef AVEXPROFILING
+        clock_gettime(CLOCK_MONOTONIC, &end); /* measure end time after instruction execution */
+        unsigned long  timeElapsed;
+        timeElapsed = 1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
+        opcodeExTimes[opcodeIndex] = (opcodeExTimes[opcodeIndex] < timeElapsed ? timeElapsed : opcodeExTimes[opcodeIndex]);
+        #endif
       } else {
 #include "thumb.h"
       }
@@ -3917,6 +3874,147 @@ void CPULoop(int ticks)
     }
   }
 }
+
+
+
+
+int CPULoadRom(const char *szFile)
+{
+  int size = 0x2000000;
+  
+  if(rom != NULL) {
+    CPUCleanUp();
+  }
+
+  systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
+
+  #ifdef AVEXPROFILING
+  // opcode space is 16^3, even though it's only < 0xaff
+  opcodeTimes = (unsigned long long *)malloc(4096*sizeof(unsigned long long));
+  memset(opcodeTimes, 0, 4096*sizeof(unsigned long long));
+  opcodeExTimes = (unsigned long *)malloc(4096*sizeof(unsigned long));
+  memset(opcodeExTimes, 0, 4096*sizeof(clock_t));
+  #endif
+
+  printf("Allocating memory for instruction cache\n");
+  insCache = (preIns *)malloc(NUM_INS_ROM*sizeof(preIns));
+  printf("Initializing instruction cache with default switch pointer\n");
+  for(int i = 0; i < NUM_INS_ROM; i++){
+      preIns temp = (preIns)malloc(sizeof(predecodedInstructionStruct));
+      temp->run = &doNextInstruction;
+      insCache[i] = temp;
+  }
+
+  rom = (u8 *)malloc(0x2000000);
+  if(rom == NULL) {
+    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                  "ROM");
+    return 0;
+  }
+  workRAM = (u8 *)calloc(1, 0x40000);
+  if(workRAM == NULL) {
+    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                  "WRAM");
+    return 0;
+  }
+
+  u8 *whereToLoad = rom;
+  if(cpuIsMultiBoot)
+    whereToLoad = workRAM;
+
+  if(CPUIsELF(szFile)) {
+    FILE *f = fopen(szFile, "rb");
+    if(!f) {
+      systemMessage(MSG_ERROR_OPENING_IMAGE, N_("Error opening image %s"),
+                    szFile);
+      free(rom);
+      rom = NULL;
+      free(workRAM);
+      workRAM = NULL;
+      return 0;
+    }
+    bool res = elfRead(szFile, size, f);
+    if(!res || size == 0) {
+      free(rom);
+      rom = NULL;
+      free(workRAM);
+      workRAM = NULL;
+      elfCleanUp();
+      return 0;
+    }
+  } else if(!utilLoad(szFile,
+                      utilIsGBAImage,
+                      whereToLoad,
+                      size)) {
+    free(rom);
+    rom = NULL;
+    free(workRAM);
+    workRAM = NULL;
+    return 0;
+  }
+
+  u16 *temp = (u16 *)(rom+((size+1)&~1));
+  int i;
+  for(i = (size+1)&~1; i < 0x2000000; i+=2) {
+    WRITE16LE(temp, (i >> 1) & 0xFFFF);
+    temp++;
+  }
+
+  bios = (u8 *)calloc(1,0x4000);
+  if(bios == NULL) {
+    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                  "BIOS");
+    CPUCleanUp();
+    return 0;
+  }    
+  internalRAM = (u8 *)calloc(1,0x8000);
+  if(internalRAM == NULL) {
+    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                  "IRAM");
+    CPUCleanUp();
+    return 0;
+  }    
+  paletteRAM = (u8 *)calloc(1,0x400);
+  if(paletteRAM == NULL) {
+    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                  "PRAM");
+    CPUCleanUp();
+    return 0;
+  }      
+  vram = (u8 *)calloc(1, 0x20000);
+  if(vram == NULL) {
+    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                  "VRAM");
+    CPUCleanUp();
+    return 0;
+  }      
+  oam = (u8 *)calloc(1, 0x400);
+  if(oam == NULL) {
+    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                  "OAM");
+    CPUCleanUp();
+    return 0;
+  }      
+  pix = (u8 *)calloc(1, 4 * 241 * 162);
+  if(pix == NULL) {
+    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                  "PIX");
+    CPUCleanUp();
+    return 0;
+  }      
+  ioMem = (u8 *)calloc(1, 0x400);
+  if(ioMem == NULL) {
+    systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                  "IO");
+    CPUCleanUp();
+    return 0;
+  }      
+
+  CPUUpdateRenderBuffers(true);
+
+  return size;
+}
+
 
 struct EmulatedSystem GBASystem = {
   // emuMain

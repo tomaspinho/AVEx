@@ -2179,18 +2179,6 @@
     }\
     break;
 
-  u32 opcode = CPUReadMemoryQuick(armNextPC);
-
-  clockTicks = memoryWaitFetch32[(armNextPC >> 24) & 15];
-
-#ifndef FINAL_VERSION
-  if(armNextPC == stop) {
-    armNextPC++;
-  }
-#endif
-
-  armNextPC = reg[15].I;
-  reg[15].I += 4;
   int cond = opcode >> 28;
   // suggested optimization for frequent cases
   bool cond_res;
@@ -2252,6 +2240,10 @@
   }
   
 if(cond_res) {
+  opcodeIndex = ((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F);
+#ifdef AVEXPROFILING
+  opcodeTimes[opcodeIndex]++;
+#endif
   switch(((opcode>>16)&0xFF0) | ((opcode>>4)&0x0F)) {
     LOGICAL_DATA_OPCODE_WITHOUT_base(OP_AND,  OP_AND, 0x000);
     LOGICAL_DATA_OPCODE_WITHOUT_base(OP_ANDS, OP_AND, 0x010);

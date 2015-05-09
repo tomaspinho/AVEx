@@ -40,6 +40,11 @@ extern bool V_FLAG;
 extern bool armState;
 extern bool armIrqEnable;
 extern u32 armNextPC;
+#ifdef AVEXPROFILING
+extern unsigned long long *opcodeTimes; // How many times each opcode is executed
+extern unsigned long *opcodeExTimes; // The longest each opcode takes to execute in ms
+#endif
+
 extern int armMode;
 extern u32 stop;
 extern int saveType;
@@ -145,5 +150,13 @@ extern u16 P1;
 extern u16 IE;
 extern u16 IF;
 extern u16 IME;
+
+struct predecodedInstructionStruct {
+    void (*run)(int&,int&);
+};
+
+typedef struct predecodedInstructionStruct * preIns;
+
+extern preIns * insCache;
 
 #endif // VBA_GLOBALS_H
