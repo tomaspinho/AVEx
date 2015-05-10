@@ -16,6 +16,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#ifdef AVEXPROFILING
+int avex_profiling = 1;
+#else
+int avex_profiling = 0;
+#endif
 
 #ifdef BKPT_SUPPORT
 #define CONSOLE_OUTPUT(a,b) \
@@ -1472,6 +1477,13 @@
       } else {\
         OPCODE \
       }\
+      if(BASE == 0x1c0){ /* BIC */\
+        if(avex_profiling) printf("Predecoding a BIC@%d\n", insIndex);\
+        insCache[insIndex]->run = &doBic;\
+        insCache[insIndex]->field1 = base;\
+        insCache[insIndex]->field2 = dest;\
+        insCache[insIndex]->field3 = value;\
+      }\
     }\
     break;
 
@@ -1872,6 +1884,12 @@
       } else {\
         OPCODE \
       }\
+      if(BASE == 0x080) { /* ADD */\
+        if(avex_profiling) printf("Predecoding a ADD@%d\n", insIndex);\
+        insCache[insIndex]->run = &doAdd;\
+        insCache[insIndex]->field1 = base;\
+        insCache[insIndex]->field2 = dest;\
+      }\
     }\
     break;\
   case BASE+2:\
@@ -2176,6 +2194,13 @@
       } else {\
         OPCODE \
       }\
+      if(BASE == 0x050){ /*SUBS*/\
+        if(avex_profiling) printf("Predecoding a SUBS @%d\n", insIndex);\
+        insCache[insIndex]->run = &doSubs;\
+        insCache[insIndex]->field1 = base;\
+        insCache[insIndex]->field2 = dest;\
+        insCache[insIndex]->field3 = value;\
+      }\
     }\
     break;
 
@@ -2252,7 +2277,8 @@ if(cond_res) {
       // MUL Rd, Rm, Rs
       int dest = (opcode >> 16) & 0x0F;
       int mult = (opcode & 0x0F);
-      u32 rs = reg[(opcode >> 8) & 0x0F].I;
+      int rsAddr = (opcode >> 8) & 0x0F; 
+      u32 rs = reg[rsAddr].I;
       reg[dest].I = reg[mult].I * rs;
       if(((s32)rs)<0)
         rs = ~rs;
@@ -2264,6 +2290,13 @@ if(cond_res) {
         clockTicks += 4;
       else
         clockTicks += 5;
+      #ifdef AVEXPROFILING
+      printf("Predecoding a MUL @%d\n", insIndex);
+      #endif
+      insCache[insIndex]->run = &doMul;
+      insCache[insIndex]->field1 = dest;
+      insCache[insIndex]->field2 = mult;
+      insCache[insIndex]->field3 = rsAddr;
     }
     break;
   case 0x019:
@@ -7086,7 +7119,7 @@ if(cond_res) {
           reg[base].I = temp;
       }
     }
-    break;    
+    break;
   CASE_256(0xa00)
     {
       // B <offset>
@@ -7099,6 +7132,11 @@ if(cond_res) {
       reg[15].I += offset;
       armNextPC = reg[15].I;
       reg[15].I += 4;
+      #ifdef AVEXPROFILING
+      printf("Predecoding a branch @%d with offset %d\n", insIndex, offset);
+      #endif
+      insCache[insIndex]->run = &doBranch;
+      insCache[insIndex]->field1 = offset;
     }
     break;
   CASE_256(0xb00)

@@ -3259,19 +3259,249 @@ extern void winlog(const char *, ...);
 #endif
 
 u32 opcode;
-void doNextInstruction(int &clockTicks, int &opcodeIndex)
+
+// We need to keep the implementation of the condition
+// checks for arm in functions optimizing opcodes
+int checkConds(){
+  int cond = opcode >> 28;
+  // suggested optimization for frequent cases
+  bool cond_res;
+  if(cond == 0x0e) {
+    cond_res = true;
+  } else {
+    switch(cond) { 
+    case 0x00: // EQ 
+      cond_res = Z_FLAG;
+      break;
+    case 0x01: // NE
+      cond_res = !Z_FLAG;
+      break; 
+    case 0x02: // CS
+      cond_res = C_FLAG;
+      break;
+    case 0x03: // CC
+      cond_res = !C_FLAG;
+      break;
+    case 0x04: // MI
+      cond_res = N_FLAG;
+      break;
+    case 0x05: // PL
+      cond_res = !N_FLAG;
+      break;
+    case 0x06: // VS
+      cond_res = V_FLAG;
+      break;
+    case 0x07: // VC
+      cond_res = !V_FLAG;
+      break;
+    case 0x08: // HI
+      cond_res = C_FLAG && !Z_FLAG;
+      break;
+    case 0x09: // LS
+      cond_res = !C_FLAG || Z_FLAG;
+      break;
+    case 0x0A: // GE
+      cond_res = N_FLAG == V_FLAG;
+      break;
+    case 0x0B: // LT
+      cond_res = N_FLAG != V_FLAG;
+      break;
+    case 0x0C: // GT
+      cond_res = !Z_FLAG &&(N_FLAG == V_FLAG);
+      break;    
+    case 0x0D: // LE
+      cond_res = Z_FLAG || (N_FLAG != V_FLAG);
+      break; 
+    case 0x0E: 
+      cond_res = true; 
+      break;
+    case 0x0F:
+    default:
+      // ???
+      cond_res = false;
+      break;
+    }
+  }
+  return cond_res; 
+}
+
+void doMul(int &clockTicks, int &opcodeIndex, int &insIndex){
+    // MUL Rd, Rm, Rs
+    //int dest = (opcode >> 16) & 0x0F; -- is now field1
+    //int mult = (opcode & 0x0F); -- is now field 2
+    //u32 rs = reg[(opcode >> 8) & 0x0F].I; -- is now field3
+//  reg[dest].I = reg[mult].I * rs;
+    #ifdef AVEXPROFILING
+    printf("Using predecoded MUL @%d\n", insIndex);
+    #endif
+    if(checkConds()){
+        preIns predecoded = insCache[insIndex];
+        u32 rs = reg[predecoded->field3].I;
+        reg[predecoded->field1].I = reg[predecoded->field2].I * rs; 
+
+        if(((s32)rs)<0)
+          rs = ~rs;
+        if((rs & 0xFFFFFF00) == 0)
+          clockTicks += 2;
+        else if ((rs & 0xFFFF0000) == 0)
+          clockTicks += 3;
+        else if ((rs & 0xFF000000) == 0)
+          clockTicks += 4;
+        else
+          clockTicks += 5;
+    }
+}
+
+void doBic(int &clockTicks, int &opcodeIndex, int &insIndex) {
+    //int shift = (opcode & 0xF00) >> 7;\
+    // Lets bruteforce this
+    #ifdef AVEXPROFILING
+    printf("Using predecoded BIC @%d\n", insIndex);
+    #endif
+    if(checkConds()){
+        int base = insCache[insIndex]->field1;
+        int dest = insCache[insIndex]->field2;
+        bool C_OUT = C_FLAG;
+        u32 value = insCache[insIndex]->field3;
+        if(dest == 15) {
+            // substituting expansion
+            reg[dest].I = reg[base].I & (~value);
+            /* todo */
+            if(opcode & 0x00100000) {
+              clockTicks++;\
+              CPUSwitchMode(reg[17].I & 0x1f, false);\
+            }
+            if(armState) {
+              reg[15].I &= 0xFFFFFFFC;
+              armNextPC = reg[15].I;
+              reg[15].I += 4;
+            } else {
+              reg[15].I &= 0xFFFFFFFE;
+              armNextPC = reg[15].I;
+              reg[15].I += 2;
+            }
+        } else {
+            // substituting expansion
+            reg[dest].I = reg[base].I & (~value);
+        }
+    }
+}
+void doAdd(int &clockTicks, int &opcodeIndex, int &insIndex){
+    #ifdef AVEXPROFILING
+    printf("Using predecoded ADD @%d\n", insIndex);
+    #endif
+    if(checkConds()){
+    /* OP Rd,Rb,Rm LSL # */
+        int base = insCache[insIndex]->field1;
+        int shift = (opcode >> 7) & 0x1F;
+        int dest =  insCache[insIndex]->field2;
+        u32 value;
+        if(shift) {
+            //ARITHMETIC_LSL_REG
+            u32 v = reg[opcode & 0x0f].I;
+            value = v << shift;
+        } else {
+            value = reg[opcode & 0x0F].I;
+        }
+        if(dest == 15) {
+            reg[dest].I = reg[base].I + value;\
+            /* todo */
+            if(opcode & 0x00100000) {
+                clockTicks++;
+                CPUSwitchMode(reg[17].I & 0x1f, false);
+            }
+            if(armState) {
+                reg[15].I &= 0xFFFFFFFC;
+                armNextPC = reg[15].I;
+                reg[15].I += 4;
+            } else {
+                reg[15].I &= 0xFFFFFFFE;
+                armNextPC = reg[15].I;
+                reg[15].I += 2;
+            }
+        } else {
+            reg[dest].I = reg[base].I + value;\
+        }
+    }
+}
+
+void doSubs(int &clockTicks, int &opcodeIndex, int &insIndex){
+      #ifdef AVEXPROFILING
+      printf("Using predecoded SUBS @%d\n", insIndex);
+      #endif
+      if(checkConds()){
+         int base = insCache[insIndex]->field1;
+         int dest = insCache[insIndex]->field2;
+         u32 value = insCache[insIndex]->field3;
+         if(dest == 15) {
+           reg[dest].I = reg[base].I - value;\
+           /* todo */
+           if(opcode & 0x00100000) {
+             clockTicks++;
+             CPUSwitchMode(reg[17].I & 0x1f, false);
+           }
+           if(armState) {
+             reg[15].I &= 0xFFFFFFFC;
+             armNextPC = reg[15].I;
+             reg[15].I += 4;
+           } else {
+             reg[15].I &= 0xFFFFFFFE;
+             armNextPC = reg[15].I;
+             reg[15].I += 2;
+           }
+         } else {
+            #define NEG(i) ((i) >> 31)
+            #define POS(i) ((~(i)) >> 31)
+            #define SUBCARRY(a, b, c) \
+               C_FLAG = ((NEG(a) & POS(b)) |\
+               (NEG(a) & POS(c)) |\
+               (POS(b) & POS(c))) ? true : false;
+            #define SUBOVERFLOW(a, b, c)\
+               V_FLAG = ((NEG(a) & POS(b) & POS(c)) |\
+               (POS(a) & NEG(b) & NEG(c))) ? true : false;
+            #define OP_SUBS \
+               {\
+                   u32 lhs = reg[base].I;\
+                   u32 rhs = value;\
+                   u32 res = lhs - rhs;\
+                   reg[dest].I = res;\
+                   Z_FLAG = (res == 0) ? true : false;\
+                   N_FLAG = NEG(res) ? true : false;\
+                   SUBCARRY(lhs, rhs, res);\
+                   SUBOVERFLOW(lhs, rhs, res);\
+               }
+            OP_SUBS
+         }
+      }
+}
+
+void doBranch(int &clockTicks, int &opcodeIndex, int &insIndex){
+ // B <offset>
+    if(checkConds()){
+        clockTicks += 3;
+        int offset =  insCache[insIndex]->field1;
+        reg[15].I += offset;
+        armNextPC = reg[15].I;
+        reg[15].I += 4;
+        #ifdef AVEXPROFILING
+        printf("Using a predecoded branch @%d with offset %d\n", insIndex, offset);
+        #endif
+    }
+}
+
+void doNextInstruction(int &clockTicks, int &opcodeIndex, int &insIndex)
 {
 #include "arm-new.h"
 }
 
 void CPULoop(int ticks)
-{  
+{
   int clockTicks;
   int cpuLoopTicks = 0;
   int timerOverflow = 0;
   // variables used by the CPU core
 
-  void (*doNextInstructionPtr)(int&,int&);
+  void (*doNextInstructionPtr)(int&,int&,int&);
   doNextInstructionPtr = &doNextInstruction;
 
   extCpuLoopTicks = &cpuLoopTicks;
@@ -3343,7 +3573,7 @@ void CPULoop(int ticks)
         // the instruction index inside the ROM, which we will then use to address
         // the predecoded information.
         int insIndex = (armNextPC&0x1FFFFFC)/4;
-        (*(insCache[insIndex]->run))(clockTicks, opcodeIndex);
+        (*(insCache[insIndex]->run))(clockTicks, opcodeIndex, insIndex);
         #ifdef AVEXPROFILING
         clock_gettime(CLOCK_MONOTONIC, &end); /* measure end time after instruction execution */
         unsigned long  timeElapsed;

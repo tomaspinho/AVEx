@@ -152,7 +152,10 @@ extern u16 IF;
 extern u16 IME;
 
 struct predecodedInstructionStruct {
-    void (*run)(int&,int&);
+    void (*run)(int&,int&,int&);
+    int field1;
+    int field2;
+    int field3;
 };
 
 typedef struct predecodedInstructionStruct * preIns;
