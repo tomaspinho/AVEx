@@ -118,5 +118,6 @@ The emulator is slowed down by the cached version because there are no opcode ca
 (3) - Percentage of original hardware speed. Minimum is the default speed. Maximum is with maximum throttling (so the emulator performs at full CPU speed).
 
 ##### Optimizations #####
-We optimized the following opcodes: 0x009 - MUL, 0x3cf - BIC, 0x080 - ADD, 0x250 - SUBS and 0xa00-0xaff - B.
+We optimized the following opcodes: *0x009* - **MUL**, *0x3cf* - **BIC**, *0x080* - **ADD**, *0x250* - **SUBS** and *0xa00-0xaff* - **B**.
 We did this by caching results from operations inside the `switch cases` in the instruction case and replacing the initial `big switch` function pointer with an implementation of the same dispatch function that reads from the cache.
+We reserve the optimization analysis for the project report.
