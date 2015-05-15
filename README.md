@@ -8,14 +8,24 @@
 #### Compilation for Profiling ####
     # To compile Visual Boy Advance with opcode profiling capabilities
     # This counts the number of dispatches per opcode and the maximum time
-    # an opcode's dispatch has taken 
+    # an opcode's dispatch has taken and produces opcodeextimes.csv and opcodetimes.csv
+    # in the current directory
     CXXFLAGS="-fpermissive -DC_CORE -DPROFILING -DDEV_VERSION -DAVEXPROFILING" CFLAGS="-g" ./configure
     make
     
 #### Installation
     # It produces messy results with all compiled objects inside src directories. Install with
     sudo make install
+
+### Running
+This emulator needs to be tested using a GBA ROM file, which can be found, for example, at [EmuParadise](http://www.emuparadise.me/Nintendo_Gameboy_Advance_ROMs/31).
+In our tests, we used *Super Mario World: Super Mario Advance 2* and *Bomberman Max 2*.
+    # Running from command line under Linux or Mac OS
+    ./VisualBoyAdvance (ROM .gba file)
+
 ------
+### Original Codebase ###
+Can be found [here](http://sourceforge.net/projects/vba/files/VisualBoyAdvance/1.7.2/).
 
 ### Process VM Interpreter ###
 Uses a **decode-and-dispatch** approach to emulating the **16.78 MHz ARM7TDMI processor** (32bit GameBoy Advance) and the **8 or 4 MHz Z80 coprocessor** (8bit GameBoy). Does not rely on data structures for execution, but rather on local variables and calls to functions that implement each opcode functionality.
@@ -106,3 +116,7 @@ With cache        | 207%       | 671%
 The emulator is slowed down by the cached version because there are no opcode caching optimizations in place. Only reading the function pointer from a given opcode's `struct` in the cache. As it is performing more memory accesses, the emulator is slightly slowed down.
 
 (3) - Percentage of original hardware speed. Minimum is the default speed. Maximum is with maximum throttling (so the emulator performs at full CPU speed).
+
+##### Optimizations #####
+We optimized the following opcodes: 0x009 - MUL, 0x3cf - BIC, 0x080 - ADD, 0x250 - SUBS and 0xa00-0xaff - B.
+We did this by caching results from operations inside the `switch cases` in the instruction case and replacing the initial `big switch` function pointer with an implementation of the same dispatch function that reads from the cache.
